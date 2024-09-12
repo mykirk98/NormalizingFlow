@@ -1,0 +1,40 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "normal_flow_training",
+            "type": "python",
+            "request": "launch",
+            "program": "./main.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--data",
+                "data/mold/Cast_reference",
+                "--category",
+                "Cast_reference"
+            ]
+        },
+        {
+            "name": "normal_flow_test",
+            "type": "python",
+            "request": "launch",
+            "program": "./main.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--data",
+                "data/mold/Cast_reference",
+                "--category",
+                "Cast_reference",
+                "--eval",
+                "--checkpoint",
+                "results/trained_weights/normalized_flow_weights/_checkpoints_mold/Cast_reference/best.pt"
+
+            ]
+        },
+    ]
+}

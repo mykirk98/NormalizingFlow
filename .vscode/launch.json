@@ -6,21 +6,23 @@
     "configurations": [
         {
             "name": "normal_flow_training",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "./main.py",
             "console": "integratedTerminal",
             "justMyCode": true,
             "args": [
-                "--data",
-                "data/mold/Cast_reference",
-                "--category",
-                "Cast_reference"
-            ]
+                // "--data"        ,   "data/mold/Cast_reference",
+                "--category"    ,   "Cast_reference",
+                "--data"        ,   "mold",
+                // "--category"    ,   "None",
+                // "--eval"
+                "--checkpoint"  ,   "results"
+                ]
         },
         {
             "name": "normal_flow_test",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "./main.py",
             "console": "integratedTerminal",

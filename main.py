@@ -45,10 +45,10 @@ def build_train_data_loader(args):
         input_size=256,
         is_train=True,
     )
-    train_dataset = dataset.MoldDataset(root=args.data,# category=args.category,
-        input_size=256,
-        is_train=True,
-    )
+    # train_dataset = dataset.MoldDataset(root=args.data,# category=args.category,
+    #     input_size=256,
+    #     is_train=True,
+    # )
     dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     return torch.utils.data.DataLoader(
         train_dataset,
@@ -79,9 +79,12 @@ def build_test_data_loader(args):
     )
 
 def build_model():
-    dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = NF_model.Model()
-    model = nn.DataParallel(model.to(dev))
+    if torch.cuda.device_count() > 1:
+        model = nn.DataParallel(module=model.to(device=device))
+    else:
+        model = model.to(device=device)
     print(
         "Model A.D. Param#: {}".format(
             sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -90,21 +93,24 @@ def build_model():
     return model
 
 def build_optimizer(model):
-    dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = nn.DataParallel(model.to(dev))
-    return torch.optim.Adam(
-        model.parameters(), lr=const.LR, weight_decay=const.WEIGHT_DECAY
-    )
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if torch.cuda.device_count() > 1:
+        model = nn.DataParallel(module=model.to(device=device))
+    else:
+        model = model.to(device=device)
 
-
-
+    return torch.optim.Adam(model.parameters(), lr=const.LR, weight_decay=const.WEIGHT_DECAY)
 
 def eval_once(dataloader, model):
-    dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = nn.DataParallel(model.to(dev))
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if torch.cuda.device_count() > 1:
+        model = nn.DataParallel(module=model.to(device=device))
+    else:
+        model = model.to(device=device)
+
     model.eval()
     auroc_metric = metrics.ROC_AUC()
-    dummy_input = torch.randn(1, 3, 256, 256).to(dev)
+    dummy_input = torch.randn(1, 3, 256, 256).to(device)
     with torch.no_grad():
         for _ in range(10):
             _ = model(dummy_input)
@@ -112,7 +118,7 @@ def eval_once(dataloader, model):
     avg_time = 0
     save_batch  =   True
     for i, (data, targets) in enumerate(dataloader):
-        data, targets = data.to(dev), targets.to(dev)
+        data, targets = data.to(device), targets.to(device)
         t0 = time.time()
         with torch.no_grad():
             ret = model(data)
@@ -143,8 +149,12 @@ def eval_once(dataloader, model):
     print("Avg time: {}, Data num: {}".format(avg_time / len(dataloader), len(dataloader)))
 
 def eval_once_on_trainig(dataloader, model, checkpoint_dir):
-    dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = nn.DataParallel(model.to(dev))
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if torch.cuda.device_count() > 1:
+        model = nn.DataParallel(module=model.to(device=device))
+    else:
+        model = model.to(device=device)
+
     model.eval()
     auroc_metric = metrics.ROC_AUC()
     avg_time = 0
@@ -153,7 +163,7 @@ def eval_once_on_trainig(dataloader, model, checkpoint_dir):
     labels_list = []
     save_batch = True
     for data, targets in dataloader:
-        data, targets = data.to(dev), targets
+        data, targets = data.to(device), targets
         t0 = time.time()
         with torch.no_grad():
             ret = model(data)
@@ -187,16 +197,18 @@ def eval_once_on_trainig(dataloader, model, checkpoint_dir):
                                             "best.pt"))
         print("Best AUROC: {}".format(best_AUROC))
 
-
-
 def train_one_epoch(dataloader, model, optimizer, epoch):
-    dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = nn.DataParallel(model.to(dev))
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if torch.cuda.device_count() > 1:
+        model = nn.DataParallel(module=model.to(device=device))
+    else:
+        model = model.to(device=device)
+    
     model.train()
     loss_meter = utils.AverageMeter()
     for step, data in enumerate(dataloader):
         # forward
-        data = data.to(dev)
+        data = data.to(device)
         ret = model(data)
         loss = ret["loss"]
         # backward
@@ -212,12 +224,10 @@ def train_one_epoch(dataloader, model, optimizer, epoch):
                 )
             )
 
-
 def train(args):
     os.makedirs(os.path.join(const.CHECKPOINT_DIR, args.category), exist_ok=True)
     os.makedirs(const.ANOM_MAPS_LOCATION, exist_ok=True)
-    checkpoint_dir = os.path.join(
-        const.CHECKPOINT_DIR, args.category)
+    checkpoint_dir = os.path.join(const.CHECKPOINT_DIR, args.category)
     # checkpoint_dir_log = os.path.join(
     #     const.CHECKPOINT_DIR, "log%d" % len(os.listdir(const.CHECKPOINT_DIR))
     # )
@@ -225,9 +235,13 @@ def train(args):
     # os.makedirs(checkpoint_dir_log, exist_ok=True)
 
     model = build_model()
-    dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = nn.DataParallel(model.to(dev))
-    optimizer = build_optimizer(model)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if torch.cuda.device_count() > 1:
+        model = nn.DataParallel(module=model.to(device=device))
+    else:
+        model = model.to(device=device)
+
+    optimizer = build_optimizer(model=model)
 
     train_dataloader = build_train_data_loader(args)
     test_dataloader = build_test_data_loader(args)
@@ -258,8 +272,12 @@ def train(args):
 
 def evaluate(args):
     model = build_model()
-    dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = nn.DataParallel(model.to(dev))
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if torch.cuda.device_count() > 1:
+        model = nn.DataParallel(module=model.to(device=device))
+    else:
+        model = model.to(device=device)
+
     checkpoint = torch.load(args.checkpoint)
     model.load_state_dict(checkpoint['model_state_dict'])
     test_dataloader = build_test_data_loader(args)
@@ -269,27 +287,20 @@ def evaluate(args):
 def parse_args():
     parser = argparse.ArgumentParser(description="Train on MVTec-AD dataset")
     parser.add_argument("--data", type=str, required=True, help="path to mvtec folder")
-    parser.add_argument(
-        "-cat",
-        "--category",
-        type=str,
-        choices=const.MVTEC_CATEGORIES,
-        required=True,
-        help="category name in mvtec",
-    )
+    parser.add_argument("-cat", "--category", type=str, choices=const.MVTEC_CATEGORIES, required=True, help="category name in mvtec")
     parser.add_argument("--eval", action="store_true", help="run eval only")
-    parser.add_argument(
-        "-ckpt", "--checkpoint", type=str, help="path to load checkpoint"
-    )
+    parser.add_argument("-ckpt", "--checkpoint", type=str, help="path to load checkpoint")
+    
     args = parser.parse_args()
+    
     return args
 
 if __name__ == "__main__":
-    # print("PyTorch version: {}".format(torch.__version__))
-    # print("CUDA available: {}".format(torch.cuda.is_available()))
-    # print("CUDA device count: {}".format(torch.cuda.device_count()))
-    # print("CUDA device name: {}".format(torch.cuda.get_device_name(0)))
-    # print("CUDA current device: {}".format(torch.cuda.current_device()))
+    print("PyTorch version: {}".format(torch.__version__))
+    print("CUDA available: {}".format(torch.cuda.is_available()))
+    print("CUDA device count: {}".format(torch.cuda.device_count()))
+    print("CUDA device name: {}".format(torch.cuda.get_device_name(0)))
+    print("CUDA current device: {}".format(torch.cuda.current_device()))
     args = parse_args()
     if args.eval:
         # python main.py --data path/to/data/ --category bottle --eval --check_points path/to/pt_file

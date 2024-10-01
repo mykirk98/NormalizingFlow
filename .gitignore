@@ -26,7 +26,8 @@ mold/
 mvtec/
 main__.py
 # data/
-# __pycache__/
+__pycache__/
 # anom_maps/
 # results/
-# result.txt
+result.txt
+guide.txt

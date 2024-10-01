@@ -14,10 +14,11 @@ class MVTecDataset(torch.utils.data.Dataset):
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
             ]
 
-        if is_train:
-            self.image_transform = transforms.Compose(base_transforms)
-        else:
-            self.image_transform = transforms.Compose(base_transforms)
+        # if is_train:
+        #     self.image_transform = transforms.Compose(base_transforms)
+        # else:
+        #     self.image_transform = transforms.Compose(base_transforms)
+        self.image_transform = transforms.Compose(base_transforms)
 
             # perturbations = [
             #     transforms.RandomAffine(degrees=15, translate=(0.15, 0.15), scale=(0.85, 1.15)),
@@ -30,11 +31,9 @@ class MVTecDataset(torch.utils.data.Dataset):
             # ])
 
         if is_train:
-            self.image_files = glob(
-                os.path.join(root, category, "train", "good", "*.png")
-            )
+            self.image_files = glob(pathname=os.path.join(root, category, "train", "good", "*.png"))
         else:
-            self.image_files = glob(os.path.join(root, category, "test", "*", "*.png"))
+            self.image_files = glob(pathname=os.path.join(root, category, "test", "*", "*.png"))
             self.target_transform = transforms.Compose(
                 [
                     transforms.Resize(input_size),
